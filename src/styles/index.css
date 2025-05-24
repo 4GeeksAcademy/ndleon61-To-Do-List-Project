@@ -1,11 +1,8 @@
-/* 
-
-    You can write your own styles here...
-    
-    
-    ...Or you can use the import command to include 
-    other sylesheets into your bunde as well, e.j:
-    
-    import 'relative/path/to/stylesheet.scss';
-
-*/
+html, body{
+    height: 100%;
+    width: auto;
+    padding: none;
+    margin: none;
+    background: #40bff5;
+    background: linear-gradient(152deg,rgba(64, 191, 245, 1) 3%, rgba(20, 199, 0, 1) 100%);
+}
