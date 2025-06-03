@@ -1,32 +1,18 @@
 import React, { useEffect, useState } from "react";
 import './home.css';
 
-const user_name = "david_leon"
+const user_name = "david_leon";
 
 const Home = () => {
   const [tasks, setTasks] = useState([]);
   const [input, setInput] = useState("");
 
   const loadTasks = async () => {
-    try {
-      const res = await fetch(`https://playground.4geeks.com/todo/users`);
-      if (res.status === 404) {
-        console.log("User not found. Creating user david_leon");
-        const createRes = await fetch (`https://playground.4geeks.com/todo/users/${user_name}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application.json'
-          },
-          body: JSON.stringify
-        });
-        if (!createRes.ok) throw new Error("Failed to create user");
-        return loadTasks();
-      }
-      const data = await res.json();
-      setTasks(data);
-    } catch (err) {
-      console.error("Error loading tasks:", err);
-    }
+    const res = await fetch(`https://playground.4geeks.com/todo/users/${user_name}`);
+    const data = await res.json();
+    console.log(data);
+    setTasks(data.todos || []); 
+    
   };
 
   useEffect(() => {
@@ -34,36 +20,40 @@ const Home = () => {
   }, []);
 
 
+  const addTask = async () => {
+  if (!input.trim()) return; 
 
-
-
-  /*useEffect( () => {
-
-    fetch(`https://playground.4geeks.com/todo/users/${user_name}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-    .then(res => res.json())
-    .then(data => {
-      console.log(data)
-    })
-    .catch(error => {
-      console.error('Error:', error)
-    })
-
-  }, []);*/
-
-  
-  const addTask = () => {
-  
+  const newTask = {
+    label: input,
+    is_done: false
   };
 
- 
-  const deleteTask = () => {
-  
-  };
+  const res = await fetch(`https://playground.4geeks.com/todo/todos/${user_name}`, {
+    method: 'Post',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(newTask)
+  })
+  const data = await res.json();
+  setTasks(prevTasks => [...prevTasks, data]);
+  setInput("");
+
+};
+
+
+const deleteTask = async (todo_id) => {
+await fetch (`https://playground.4geeks.com/todo/todos/${todo_id}`, {
+  method: 'DELETE',
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+setTasks(prevTasks => prevTasks.filter(task => task.id !== todo_id));
+
+};
+
 
   return (
     <div className="container">
@@ -80,17 +70,13 @@ const Home = () => {
         <button className="add-button" onClick={addTask}>Add</button>
       </div>
 
-     <ul>
-        {Array.isArray(tasks) ? (
-          tasks.map((task) => (
-            <li key={task.id} className="tasks">
-              <span>{task.label}</span>
-              <button className="delete-button" onClick={() => deleteTask(task.id)}>Delete</button>
-            </li>
-          ))
-        ) : (
-          <li>No tasks found</li>
-        )}
+      <ul>
+        {Array.isArray(tasks) && tasks.map((task, index) => (
+          <li key={task.id || index} className="tasks">
+            <span>{task.label}</span>
+            <button className="delete-button" onClick={() => deleteTask(task.id)}>Delete</button>
+          </li>
+        ))}
       </ul>
     </div>
   );
