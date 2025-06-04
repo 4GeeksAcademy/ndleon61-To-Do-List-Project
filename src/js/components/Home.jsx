@@ -7,18 +7,52 @@ const Home = () => {
   const [tasks, setTasks] = useState([]);
   const [input, setInput] = useState("");
 
-  const loadTasks = async () => {
-    const res = await fetch(`https://playground.4geeks.com/todo/users/${user_name}`);
-    const data = await res.json();
-    console.log(data);
-    setTasks(data.todos || []); 
-    
+
+// Setting a new user 
+
+  const setNewUser = async () => {
+    const res = await fetch(`https://playground.4geeks.com/todo/users/${user_name}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    const data = await res.json()
+  }
+
+ const loadTasks = async () => {
+  const res = await fetch(`https://playground.4geeks.com/todo/users/${user_name}`);
+
+  if (!res.ok) {
+    throw new Error(`${res.status}`);
+  }
+
+  const data = await res.json();
+  console.log(data);
+  setTasks(data.todos || []);
+};
+
+// Load tasks. If user does not exist create new user and then load tasks
+
+ useEffect(() => {
+  const initialize = async () => {
+    try {
+      await loadTasks();
+    } catch (error) {
+      if (error.message.includes("404")) {
+        console.log("User doesn't exist. Creating...");
+        await setNewUser();
+        await loadTasks(); 
+      } else {
+        console.error("Unexpected error:", error);
+      }
+    }
   };
 
-  useEffect(() => {
-    loadTasks();
-  }, []);
+  initialize();
+}, []);
 
+// Adding a task 
 
   const addTask = async () => {
   if (!input.trim()) return; 
@@ -29,7 +63,7 @@ const Home = () => {
   };
 
   const res = await fetch(`https://playground.4geeks.com/todo/todos/${user_name}`, {
-    method: 'Post',
+    method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
@@ -41,6 +75,7 @@ const Home = () => {
 
 };
 
+// Deleting a task 
 
 const deleteTask = async (todo_id) => {
 await fetch (`https://playground.4geeks.com/todo/todos/${todo_id}`, {
@@ -53,6 +88,38 @@ await fetch (`https://playground.4geeks.com/todo/todos/${todo_id}`, {
 setTasks(prevTasks => prevTasks.filter(task => task.id !== todo_id));
 
 };
+
+// Toggle function when a task has been completed
+
+const toggleTask = async (todo_id, newStatus) => {
+  const taskToChange = tasks.find(task => task.id === todo_id);
+  if (!taskToChange) return;
+
+  const res = await fetch(`https://playground.4geeks.com/todo/todos/${todo_id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      is_done: newStatus,
+      label: taskToChange.label
+    })
+  });
+
+  if (!res.ok) {
+    console.error("Failed to update task on server");
+    return;
+  }
+  const updatedTask = await res.json();
+
+  setTasks(prevTasks =>
+    prevTasks.map(task =>
+      task.id === todo_id ? updatedTask : task
+    )
+  );
+};
+
+
 
 
   return (
@@ -73,6 +140,11 @@ setTasks(prevTasks => prevTasks.filter(task => task.id !== todo_id));
       <ul>
         {Array.isArray(tasks) && tasks.map((task, index) => (
           <li key={task.id || index} className="tasks">
+           <input 
+            type="checkbox" 
+            checked={task.is_done}
+            onChange={() => toggleTask(task.id, !task.is_done)}
+          />
             <span>{task.label}</span>
             <button className="delete-button" onClick={() => deleteTask(task.id)}>Delete</button>
           </li>
